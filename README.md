@@ -35,4 +35,4 @@ and it will handle all of your files for you
 4) Lastly it checks if there is a csv file that was stored in measured and moves it to archived_results and appends its contents to Master_record.csv
 
 * if you have any questions, give me a call or try running the starting command with the "--help" flag
-** if you do not have python installed on your computer, this script will not run. Go to www.python.org/downloads and follow the download instructions. This shouldn't take more than 5 to 10 minutes
+* *if you do not have python installed on your computer, this script will not run. Go to www.python.org/downloads and follow the download instructions. This shouldn't take more than 5 to 10 minutes
