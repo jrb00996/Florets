@@ -1,5 +1,8 @@
-### Florets
+# Florets
 Python folder management for floret processing
+
+
+# Installation:
 
 ## mac OS or Linux
 1) To get started open command prompt, type "cd" with a space after and drag the "dist" folder in it. Press Enter
@@ -11,7 +14,7 @@ Python folder management for floret processing
 and it will handle all of your files for you
 
 
-## windows
+## Windows
 1) To get started open command prompt, type "cd" with a space after and drag the "dist" folder in it. Press Enter
 2) Copy and paste the following command without the quotes:
 
@@ -23,7 +26,7 @@ and it will handle all of your files for you
 
 
 –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-# Functionality:
+## Functionality:
 1) If it is your first time running it run the starting command above but with the "-- setup" flag at the end (just type a space and --setup), it will take you to a setup menu.
     a) First it will ask your for the file paths for three folders: Originals, Unmeasured, and Measured
     b) To copy the paths, click and drag the coresponding folder into the command line window and press enter.
