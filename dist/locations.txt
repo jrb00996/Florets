@@ -1,0 +1,3 @@
+#originals_path = 'C:/Users/Jared/OneDrive - University of Georgia/Scanned Floret Images/SAM plots 2020 original'
+#measured_path = 'C:/Users/Jared/OneDrive - University of Georgia/Scanned Floret Images/SAM plots 2020 Measured'
+#unmeasured_path = 'C:/Users/Jared/OneDrive - University of Georgia/Scanned Floret Images/SAM plots 2020 Unmeasured'

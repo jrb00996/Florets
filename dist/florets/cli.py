@@ -184,14 +184,14 @@ def main(setup,refresh):
                 csvs = {}
                 for _file in os.listdir(measured_path+'/archived_results/'):
                     if _file.endswith(".csv"):
-                        csvs.update({name+ext:pd.read_csv(measured_path+'/'+_file)})
+                        csvs.update({name+ext:pd.read_csv(measured_path+'/archived_results/'+_file)})
                 master = pd.concat(list(csvs.values()))
                 master = master[[" ","Label","Length"]]
                 master.Length = master.Length.apply(lambda x: np.round(x/(2400/2.54),3) if x >=5 else x)
                 master = master.rename(columns={' ':'original_index'})
                 master.reset_index(inplace=True)
                 master.to_csv(measured_path+'/master_result.csv',index=False)
-                click.echo(f"{good(name+ext,r=True)} appended to {inst('master_record.csv')}")
+                click.echo(f"{good(new_file_name+ext,r=True)} appended to {inst('master_record.csv',r=True)}")
                 
         time.sleep(refresh)
         
