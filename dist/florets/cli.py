@@ -9,6 +9,7 @@ import pandas as pd
 from colorama import init,Fore,Back,Style
 init()
 
+### color formatting functions --START--
 def good(x,r=False):
     if r:
         return Fore.GREEN+Style.BRIGHT+str(x)+Style.RESET_ALL
@@ -32,7 +33,7 @@ def question(x,r=False):
         return Fore.YELLOW+Style.BRIGHT+str(x)+Style.RESET_ALL
     else:
         print(Fore.YELLOW+Style.BRIGHT+str(x)+Style.RESET_ALL)
-
+### color formatting functions --STOP--
 
 reg_format = '(.{5,40})(\.\w{2,5})'
 
@@ -41,7 +42,8 @@ startup_message = "\n\n"+'#'*30+good("\nStarting Floret image Management.",True)
 @click.command()
 @click.option('--setup',is_flag=True)
 @click.option('--refresh',type=int,default=3,help='How long to wait in seconds before checking again, Default = 3 seconds')
-def main(setup,refresh):
+@click.option('--checkmaster',is_flag=True,help='Append all results to master_result.csv on startup')
+def main(setup,refresh) -> None:  # sourcery no-metrics
     """If a file is in original but not measured or unmeasured, copys it to unmeasured
 \nIf a file is in measured and in unmeasured, deletes it from unmeasured"""
     originals_path = ''
@@ -126,74 +128,93 @@ def main(setup,refresh):
     if not os.path.exists(measured_path+'/'+'archived_results'):
         os.mkdir(measured_path+'/'+'archived_results')
     
-    removed = [] #used to ensure it doesnt delete the newest .tiff file
-    while True:
-        originals = [re.findall(reg_format,fn) for fn in os.listdir(originals_path)]
-        originals = [t for t in originals if len(t) > 0]
-        measured = [re.findall(reg_format,fn) for fn in os.listdir(measured_path)]
-        measured = [t for t in measured if len(t) > 0]
-        unmeasured = [re.findall(reg_format,fn) for fn in os.listdir(unmeasured_path)]
-        unmeasured = [t for t in unmeasured if len(t) > 0]
-        assert len(unmeasured) > 0, 'Debug:: empty unmeasured list'
-        for fname in originals:
-            if fname[0][0] not in [un[0][0] for un in unmeasured] and fname[0][0] not in [m[0][0] for m in measured]:
+    try:
+        removed = [] #used to ensure it doesnt delete the image just measured so that "open next" can be used in imagej
+        while True:
+            originals = [re.findall(reg_format,fn) for fn in os.listdir(originals_path)]
+            originals = [t for t in originals if len(t) > 0]
+            measured = [re.findall(reg_format,fn) for fn in os.listdir(measured_path)]
+            measured = [t for t in measured if len(t) > 0]
+            unmeasured = [re.findall(reg_format,fn) for fn in os.listdir(unmeasured_path)]
+            unmeasured = [t for t in unmeasured if len(t) > 0]
+            assert len(unmeasured) > 0, 'Debug:: empty unmeasured list'
+            for fname in originals:
+                if fname[0][0] not in [un[0][0] for un in unmeasured] and fname[0][0] not in [m[0][0] for m in measured]:
+                    name = fname[0][0]
+                    ext = fname[0][1]
+                    source = originals_path + '/' + name + ext
+                    destination = unmeasured_path
+                    shutil.copy(source,destination)
+                    click.echo(f"added '{good(name + ext,True)}' to unmeasured -- {inst(datetime.now(),True)}")
+            for fname in unmeasured:
+                if fname[0][0] in [m[0][0] for m in measured]:
+                    name = fname[0][0]
+                    ext = fname[0][1]
+                    if [name,ext] not in removed:
+                        removed.append([name,ext])
+            for name,ext in removed:
+                if name != removed[-1][0]:
+                    source = unmeasured_path + '/' + name + ext
+                    try:
+                        os.remove(source)
+                        click.echo(f"removed '{good(name + ext,True)}' from unmeasured -- {inst(datetime.now(),True)}")
+                        removed.remove([name,ext])
+                    except:
+                        print('Debug:: Please Restart Srcipt')
+                        print(removed)
+            
+            
+            for fname in measured:
                 name = fname[0][0]
                 ext = fname[0][1]
-                source = originals_path + '/' + name + ext
-                destination = unmeasured_path
-                shutil.copy(source,destination)
-                click.echo(f"added '{good(name + ext,True)}' to unmeasured -- {inst(datetime.now(),True)}")
-        for fname in unmeasured:
-            if fname[0][0] in [m[0][0] for m in measured]:
-                name = fname[0][0]
-                ext = fname[0][1]
-                if [name,ext] not in removed:
-                    removed.append([name,ext])
-        for name,ext in removed:
-            if name != removed[-1][0]:
-                source = unmeasured_path + '/' + name + ext
-                try:
-                    os.remove(source)
-                    click.echo(f"removed '{good(name + ext,True)}' from unmeasured -- {inst(datetime.now(),True)}")
-                    removed.remove([name,ext])
-                except:
-                    print('Debug:: Please Restart Srcipt')
-                    print(removed)
-        
-        
-        for fname in measured:
-            name = fname[0][0]
-            ext = fname[0][1]
-            if ext == '.csv' and name != 'master_result':
-                source = measured_path+'/'+name+ext # name of the .csv file to move
-                new_file_name = name+ext
-                i = 1 # increment for file naming
-                while os.path.exists(measured_path+'/archived_results/'+new_file_name): # increments the filename to make it unique
-                    i += 1
-                    new_file_name = name+str(i)+ext
-                    if i >= 1000:
-                        click.echo(bad("An error has occured while trying to rename the csv file"))
-                    
-                destination = measured_path+'/archived_results/'+new_file_name
-                try:
-                    shutil.move(source,destination)
-                    click.echo(f"moved {good(name+ext,r=True)} to {inst('archived_results/',r=True)}")
-                except:
-                    click.echo(bad(f'An error occured while trying to move {name+ext}. Try incrementing the number at the end of the file name to make it unique.'))
+                if ext == '.csv' and name != 'master_result':
+                    source = measured_path+'/'+name+ext # name of the .csv file to move
+                    new_file_name = name+ext
+                    i = 1 # increment for file naming
+                    while os.path.exists(measured_path+'/archived_results/'+new_file_name): # increments the filename to make it unique
+                        i += 1
+                        new_file_name = name+str(i)+ext
+                        if i >= 10000:
+                            click.echo(bad("An error has occured while trying to rename the new csv file"))
+                        
+                    destination = measured_path+'/archived_results/'+new_file_name
+                    try:
+                        shutil.move(source,destination)
+                        click.echo(f"moved {good(name+ext,r=True)} to {inst('archived_results/',r=True)}")
+                        checkmaster = True
+                    except:
+                        click.echo(bad(f'An error occured while trying to move {name+ext}. Try incrementing the number at the end of the file name to make it unique.',r=True))
+            if checkmaster:
                 #combining result.csv's into a single master_result.csv
                 csvs = {}
-                for _file in os.listdir(measured_path+'/archived_results/'):
-                    if _file.endswith(".csv"):
-                        csvs.update({name+ext:pd.read_csv(measured_path+'/archived_results/'+_file)})
-                master = pd.concat(list(csvs.values()))
-                master = master[[" ","Label","Length"]]
-                master.Length = master.Length.apply(lambda x: np.round(x/(2400/2.54),3) if x >=5 else x)
-                master = master.rename(columns={' ':'original_index'})
-                master.reset_index(inplace=True)
-                master.to_csv(measured_path+'/master_result.csv',index=False)
+                for _file in [re.findall(reg_format,fn) for fn in os.listdir(measured_path+'/archived_results/')]:
+                    name = _file[0][0]
+                    ext = _file[0][1]
+                    if ext == ".csv" and name != 'master_record':
+                        csvs.update({name+ext:pd.read_csv(measured_path+'/archived_results/'+name+ext)})
+                _master = pd.concat(list(csvs.values()),ignore_index=True)
+                _master.rename(columns={' ':'Original Index'},inplace=True)
+                def scale_down(x): # fix mistakes where you forgot to set scale at the beginning
+                    if x > 3:
+                        x = np.round(x / (2400/2.54), 3)
+                        
+                    return x
+                _master.Length = _master.Length.apply(scale_down)
+                master = _master[['Original Index','Label','Length']]
+                master.to_csv(measured_path+'/archived_results/'+'master_record.csv',index=False)
                 click.echo(f"{good(new_file_name+ext,r=True)} appended to {inst('master_record.csv',r=True)}")
-                
-        time.sleep(refresh)
+                    
+            time.sleep(refresh)
+    except KeyboardInterrupt: # remove everythong left in removed before exiting
+        for name,ext in removed:
+            source = unmeasured_path + '/' + name + ext
+            try:
+                os.remove(source)
+                click.echo(f"removed '{good(name + ext,True)}' from unmeasured -- {inst(datetime.now(),True)}")
+                removed.remove([name,ext])
+            except:
+                print('Debug:: Please Restart Srcipt')
+                print(removed)
         
     
 
