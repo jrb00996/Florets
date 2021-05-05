@@ -43,7 +43,7 @@ startup_message = "\n\n"+'#'*30+good("\nStarting Floret image Management.",True)
 @click.option('--setup',is_flag=True)
 @click.option('--refresh',type=int,default=3,help='How long to wait in seconds before checking again, Default = 3 seconds')
 @click.option('--checkmaster',is_flag=True,help='Append all results to master_result.csv on startup')
-def main(setup,refresh) -> None:  # sourcery no-metrics
+def main(setup,refresh,checkmaster) -> None:  # sourcery no-metrics
     """If a file is in original but not measured or unmeasured, copys it to unmeasured
 \nIf a file is in measured and in unmeasured, deletes it from unmeasured"""
     originals_path = ''
@@ -185,27 +185,32 @@ def main(setup,refresh) -> None:  # sourcery no-metrics
                     except:
                         click.echo(bad(f'An error occured while trying to move {name+ext}. Try incrementing the number at the end of the file name to make it unique.',r=True))
             if checkmaster:
+                checkmaster = False
                 #combining result.csv's into a single master_result.csv
                 csvs = {}
-                for _file in [re.findall(reg_format,fn) for fn in os.listdir(measured_path+'/archived_results/')]:
-                    name = _file[0][0]
-                    ext = _file[0][1]
-                    if ext == ".csv" and name != 'master_record':
-                        csvs.update({name+ext:pd.read_csv(measured_path+'/archived_results/'+name+ext)})
-                _master = pd.concat(list(csvs.values()),ignore_index=True)
-                _master.rename(columns={' ':'Original Index'},inplace=True)
-                def scale_down(x): # fix mistakes where you forgot to set scale at the beginning
-                    if x > 3:
-                        x = np.round(x / (2400/2.54), 3)
-                        
-                    return x
-                _master.Length = _master.Length.apply(scale_down)
-                master = _master[['Original Index','Label','Length']]
-                master.to_csv(measured_path+'/archived_results/'+'master_record.csv',index=False)
-                click.echo(f"{good(new_file_name+ext,r=True)} appended to {inst('master_record.csv',r=True)}")
+                try:
+                    for _file in [re.findall(reg_format,fn) for fn in os.listdir(measured_path+'/archived_results/')]:
+                        name = _file[0][0]
+                        ext = _file[0][1]
+                        if ext == ".csv" and name != 'master_record':
+                            csvs.update({name+ext:pd.read_csv(measured_path+'/archived_results/'+name+ext)})
+                    _master = pd.concat(list(csvs.values()),ignore_index=True)
+                    _master.rename(columns={' ':'Original Index'},inplace=True)
+                    def scale_down(x): # fix mistakes where you forgot to set scale at the beginning
+                        if x > 3:
+                            x = np.round(x / (2400/2.54), 3)
+                            
+                        return x
+                    _master.Length = _master.Length.apply(scale_down)
+                    master = _master[['Original Index','Label','Length']]
+                    master.to_csv(measured_path+'/archived_results/'+'master_record.csv',index=False)
+                    click.echo(f"{good(new_file_name+ext,r=True)} appended to {inst('master_record.csv',r=True)}")
+                except UnboundLocalError:
+                    click.echo(good("Master Record is complete",r=True))
                     
             time.sleep(refresh)
     except KeyboardInterrupt: # remove everythong left in removed before exiting
+        click.echo(inst("Closing...\nGood bye"))
         for name,ext in removed:
             source = unmeasured_path + '/' + name + ext
             try:
